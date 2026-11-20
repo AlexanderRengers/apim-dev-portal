@@ -1,6 +1,8 @@
 resource "azurerm_api_management_api" "customers" {
-  name                  = "customers"
-  display_name          = "Customers API"
+  name         = "customers"
+  display_name = "Customers API"
+  # Same text as info.description in the OpenAPI file; APIM copies it on import, so it must be set here too.
+  description           = "Simple CRUD API for customers (PoC, demo data). APIM talks directly to Azure Table Storage."
   resource_group_name   = azurerm_resource_group.this.name
   api_management_name   = azurerm_api_management.this.name
   path                  = "crm"
