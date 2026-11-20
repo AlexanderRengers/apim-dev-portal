@@ -34,10 +34,19 @@ resource "azuread_application" "portal" {
 }
 
 # Without a service principal, sign-in of tenant users fails with an AADSTS error.
+# With sign_in_group_ids set, only members of these groups can sign in (assignment required).
 resource "azuread_service_principal" "portal" {
   client_id                    = azuread_application.portal.client_id
-  app_role_assignment_required = false
+  app_role_assignment_required = length(var.sign_in_group_ids) > 0
   owners                       = [data.azuread_client_config.current.object_id]
+}
+
+resource "azuread_app_role_assignment" "sign_in" {
+  for_each = toset(var.sign_in_group_ids)
+
+  app_role_id         = "00000000-0000-0000-0000-000000000000" # default access, the app defines no roles
+  principal_object_id = each.value
+  resource_object_id  = azuread_service_principal.portal.object_id
 }
 
 # Rotation: tofu -chdir=02-portal apply -replace=time_offset.secret_expiry

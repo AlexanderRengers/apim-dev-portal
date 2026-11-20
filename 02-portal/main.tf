@@ -13,3 +13,13 @@ resource "terraform_data" "portal_preflight" {
     command = "bash ${path.module}/../scripts/portal-preflight.sh ${data.azurerm_api_management.this.id}"
   }
 }
+
+# Email/password registration off (Entra ID only). Set on the instance via the management API,
+# because the azurerm setting lives on the APIM resource itself, which this root does not own.
+resource "terraform_data" "portal_signup" {
+  triggers_replace = [data.azurerm_api_management.this.id, var.signup_enabled]
+
+  provisioner "local-exec" {
+    command = "bash ${path.module}/../scripts/portal-signup.sh ${data.azurerm_api_management.this.id} ${var.signup_enabled}"
+  }
+}

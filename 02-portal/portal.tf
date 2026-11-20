@@ -44,5 +44,5 @@ resource "terraform_data" "portal_publish" {
     command = "bash ${path.module}/../scripts/portal-publish.sh ${data.azurerm_api_management.this.id}"
   }
 
-  depends_on = [azurerm_api_management_identity_provider_aad.this, terraform_data.portal_content]
+  depends_on = [azurerm_api_management_identity_provider_aad.this, terraform_data.portal_content, terraform_data.portal_signup]
 }

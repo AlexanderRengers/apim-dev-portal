@@ -21,21 +21,33 @@ variable "tenant_id" {
 
 variable "resource_group_name" {
   type        = string
-  description = "Resource group of the APIM instance (from stage1.auto.tfvars)."
+  description = "Resource group of the APIM instance (from stages/<stage>.tfvars)."
 }
 
 variable "apim_name" {
   type        = string
-  description = "Name of the APIM instance (from stage1.auto.tfvars)."
+  description = "Name of the APIM instance (from stages/<stage>.tfvars)."
 }
 
 variable "developer_portal_url" {
   type        = string
-  description = "Developer portal URL (from stage1.auto.tfvars)."
+  description = "Developer portal URL (from stages/<stage>.tfvars)."
 }
 
 variable "secret_lifetime_days" {
   type        = number
   description = "Client secret lifetime in days."
   default     = 90
+}
+
+variable "signup_enabled" {
+  type        = bool
+  description = "Allow email/password registration in the portal. false = Entra ID sign-in only."
+  default     = false
+}
+
+variable "sign_in_group_ids" {
+  type        = list(string)
+  description = "Object IDs of Entra groups whose members may sign in to the portal. Empty = every member of the tenant. Group assignment needs Entra ID P1 or higher."
+  default     = []
 }

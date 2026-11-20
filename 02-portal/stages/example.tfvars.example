@@ -1,0 +1,12 @@
+# Copy to <stage>.tfvars (e.g. dev.tfvars, test.tfvars, prod.tfvars) and use it with:
+#   make up-2 STAGE=<stage>
+# Describes an EXISTING APIM instance. ('make up-1' writes dev.tfvars for the demo instance.)
+resource_group_name  = "rg-apim-prod"
+apim_name            = "apim-prod-example"
+developer_portal_url = "https://apim-prod-example.developer.azure-api.net"
+
+# Optional overrides for this stage:
+# subscription_id = "00000000-0000-0000-0000-000000000000"   # other subscription
+# tenant_id       = "00000000-0000-0000-0000-000000000000"   # other Entra tenant
+# signup_enabled  = false                                     # email/password registration
+# sign_in_group_ids = ["00000000-0000-0000-0000-000000000000"]   # only these Entra groups may sign in
