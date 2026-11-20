@@ -1,5 +1,10 @@
+locals {
+  # dev (workspace "default") keeps the original name; other stages get a suffix, e.g. "-prod".
+  app_display_name = terraform.workspace == "default" ? "apim-dev-portal-poc-portal" : "apim-dev-portal-poc-portal-${terraform.workspace}"
+}
+
 resource "azuread_application" "portal" {
-  display_name     = "apim-dev-portal-poc-portal"
+  display_name     = local.app_display_name
   sign_in_audience = "AzureADMyOrg"
   owners           = [data.azuread_client_config.current.object_id]
 
