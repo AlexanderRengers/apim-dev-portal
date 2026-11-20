@@ -38,6 +38,18 @@
     },
     "type": "Microsoft.ApiManagement/service/contentTypes/contentItems"
   },
+  "/contentTypes/blob/contentItems/c7fb397f-dc9a-b1fc-509c-03a8d7bdb0bf": {
+    "name": "c7fb397f-dc9a-b1fc-509c-03a8d7bdb0bf",
+    "properties": {
+      "blobId": "c7fb397f-dc9a-b1fc-509c-03a8d7bdb0bf",
+      "description": "",
+      "fileName": "original-f43f92e3561673ffe4521ea176617aaa.webp",
+      "keywords": "",
+      "mimeType": "image/webp",
+      "permalink": "/content/original-f43f92e3561673ffe4521ea176617aaa.webp"
+    },
+    "type": "Microsoft.ApiManagement/service/contentTypes/contentItems"
+  },
   "/contentTypes/blob/contentItems/c927adba-5309-1b4c-80e7-9e13f2d663c1": {
     "name": "c927adba-5309-1b4c-80e7-9e13f2d663c1",
     "properties": {
@@ -2531,11 +2543,11 @@
                 {
                   "nodes": [
                     {
-                      "sourceId": "contentTypes/blob/contentItems/f1183eca-b12a-24b7-23e8-345854d74aa6",
+                      "sourceId": "contentTypes/blob/contentItems/c7fb397f-dc9a-b1fc-509c-03a8d7bdb0bf",
                       "styles": {
                         "appearance": "components/picture/default",
                         "instance": {
-                          "id": "sjjxoovbbn",
+                          "id": "wajozhbzfj",
                           "margin": null
                         }
                       },
