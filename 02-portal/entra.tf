@@ -13,6 +13,14 @@ resource "azuread_application" "portal" {
     redirect_uris = ["${var.developer_portal_url}/signin"]
   }
 
+  # Lets APIM prefill the email field of the "Complete sign up" form on a user's first sign-in.
+  # Only filled if the account has an email address (Entra user property "Email" / mail).
+  optional_claims {
+    id_token {
+      name = "email"
+    }
+  }
+
   required_resource_access {
     resource_app_id = "00000003-0000-0000-c000-000000000000" # Microsoft Graph
 

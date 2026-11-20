@@ -271,6 +271,10 @@ sequenceDiagram
   Entra-->>Dev: Credentials, MFA (tenant policy), consent to User.Read (first time)
   Entra-->>Portal: ID token
   Portal->>APIM: Token for identity provider 'aad'
+  opt First sign-in of this account
+    Portal-->>Dev: "Complete sign up" form (email, first and last name)
+    Dev->>Portal: Submit
+  end
   APIM-->>APIM: Find or create APIM user, add to 'developers'
   APIM-->>Portal: APIM session
   Dev->>Portal: Products → Self-Service Customer Portal → Subscribe
@@ -285,7 +289,7 @@ sequenceDiagram
 
 **Steps:**
 
-1. **Sign in.** Open the portal URL → "Sign in" → "Azure Active Directory" → sign in with your work account. On the first sign-in, Entra asks you to consent to "Sign you in and read your profile" (`User.Read`) unless an admin already consented for the tenant. APIM then creates your portal account.
+1. **Sign in.** Open the portal URL → "Sign in" → "Azure Active Directory" → sign in with your work account. On the first sign-in, Entra asks you to consent to "Sign you in and read your profile" (`User.Read`) unless an admin already consented for the tenant. Back in the portal, a **"Complete sign up"** form appears once: APIM creates your portal account and asks for email, first and last name. Names are prefilled from Entra; the email is prefilled only if your Entra account has an email address (the app requests the optional `email` claim). Submit the form; later sign-ins skip it.
 2. **Subscribe.** Products → "Self-Service Customer Portal" → Subscribe. No approval is needed; each developer can have one subscription. The keys are on your profile page.
 3. **Try the API.** APIs → Customers API → pick an operation → "Try it". The portal fills in your subscription key. Send the request; the response appears below.
 4. **Call it from your own code.** Use the same key in the `Ocp-Apim-Subscription-Key` header:
@@ -297,7 +301,8 @@ sequenceDiagram
 What developers may notice:
 - The first sign-in attempt can fail with `timed_out` (MSAL). A second attempt works.
 - Accounts from other tenants and personal Microsoft accounts are rejected. There is no email/password registration (sign-up is off).
-- Whether a brand-new user's first sign-in still works with sign-up disabled has not been verified yet in this PoC. If it fails, sign-up must be enabled again and the email/password form removed from the sign-in page in the editor instead.
+- New Entra users can sign in although sign-up is disabled (verified): the "Complete sign up" form on the first sign-in belongs to the Entra flow, not to email/password registration.
+- Accounts without an email address in Entra (e.g. external `#EXT#` accounts without the "Email" property) see an empty email field and type it once. Setting the user's "Email" property in Entra fixes the prefill.
 
 ## Microsoft's scripts and updates
 
