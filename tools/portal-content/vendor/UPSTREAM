@@ -1,0 +1,5 @@
+repository: https://github.com/Azure/api-management-developer-portal.git
+ref: 2.36.0
+commit: 0f78dc056ecc7eef0df5c58fc342382c6d2d9cde
+path: scripts.v3
+files: utils.js capture.js generate.js cleanup.js

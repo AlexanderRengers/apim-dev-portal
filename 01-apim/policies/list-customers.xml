@@ -1,0 +1,40 @@
+<policies>
+    <inbound>
+        <base />
+        <!-- copy-unmatched-params=false: sonst gingen $filter, $top usw. vom Client an Table Storage durch. -->
+        <rewrite-uri template="/customers()?$select=RowKey,name,email,city" copy-unmatched-params="false" />
+    </inbound>
+    <backend>
+        <base />
+    </backend>
+    <outbound>
+        <base />
+        <choose>
+            <when condition="@(context.Response.StatusCode == 200)">
+                <set-header name="Content-Type" exists-action="override">
+                    <value>application/json; charset=utf-8</value>
+                </set-header>
+                <!-- {"value":[...]} auspacken, RowKey -> id, city nur wenn vorhanden. -->
+                <set-body>@{
+                    var src = context.Response.Body.As&lt;JObject&gt;();
+                    var result = new JArray();
+                    var rows = src["value"] as JArray;
+                    if (rows != null) {
+                        foreach (var row in rows) {
+                            var o = new JObject();
+                            o["id"] = row["RowKey"];
+                            o["name"] = row["name"];
+                            o["email"] = row["email"];
+                            if (row["city"] != null) { o["city"] = row["city"]; }
+                            result.Add(o);
+                        }
+                    }
+                    return result.ToString();
+                }</set-body>
+            </when>
+        </choose>
+    </outbound>
+    <on-error>
+        <base />
+    </on-error>
+</policies>

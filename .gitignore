@@ -1,0 +1,19 @@
+# OpenTofu
+**/.terraform/
+**/*.tfstate
+**/*.tfstate.*
+**/*.tfplan
+
+# Persönliche Werte (Subscription, Tenant, E-Mail) und generierte Übergabe zwischen den Roots
+**/terraform.tfvars
+**/*.auto.tfvars
+
+# Passphrase für die State-Verschlüsselung
+.env
+
+# Node (Abhängigkeiten der Portal-Skripte)
+**/node_modules/
+
+# Zwischendateien
+**/*.tmp
+.DS_Store

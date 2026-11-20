@@ -1,0 +1,56 @@
+<policies>
+    <inbound>
+        <base />
+        <validate-content unspecified-content-type-action="prevent" max-size="4096" size-exceeded-action="prevent" errors-variable-name="bodyErrors">
+            <content type="application/json" validate-as="json" action="prevent" allow-additional-properties="false" />
+        </validate-content>
+        <!-- API-Kunde merken: Table Storage antwortet auf Update nur mit 204 ohne Body. -->
+        <set-variable name="replaceBody" value="@{
+            var input = context.Request.Body.As&lt;JObject&gt;(preserveContent: true);
+            var o = new JObject();
+            o[&quot;id&quot;] = context.Request.MatchedParameters[&quot;id&quot;];
+            o[&quot;name&quot;] = input[&quot;name&quot;];
+            o[&quot;email&quot;] = input[&quot;email&quot;];
+            if (input[&quot;city&quot;] != null) { o[&quot;city&quot;] = input[&quot;city&quot;]; }
+            return o.ToString();
+        }" />
+        <!-- Entity aus den erlaubten Feldern bauen. PartitionKey und RowKey setzt APIM. -->
+        <set-body>@{
+            var o = JObject.Parse((string)context.Variables["replaceBody"]);
+            var e = new JObject();
+            e["PartitionKey"] = "customer";
+            e["RowKey"] = o["id"];
+            e["name"] = o["name"];
+            e["email"] = o["email"];
+            if (o["city"] != null) { e["city"] = o["city"]; }
+            return e.ToString();
+        }</set-body>
+        <set-header name="Content-Type" exists-action="override">
+            <value>application/json</value>
+        </set-header>
+        <!-- If-Match: *, sonst macht Table Storage ein Upsert statt 404 bei unbekannter id. -->
+        <set-header name="If-Match" exists-action="override">
+            <value>*</value>
+        </set-header>
+        <rewrite-uri template="/customers(PartitionKey='customer',RowKey='{id}')" copy-unmatched-params="false" />
+    </inbound>
+    <backend>
+        <base />
+    </backend>
+    <outbound>
+        <base />
+        <choose>
+            <!-- 204 von Table Storage wird zu 200 mit dem gespeicherten Kunden. -->
+            <when condition="@(context.Response.StatusCode == 204)">
+                <set-status code="200" reason="OK" />
+                <set-header name="Content-Type" exists-action="override">
+                    <value>application/json; charset=utf-8</value>
+                </set-header>
+                <set-body>@((string)context.Variables["replaceBody"])</set-body>
+            </when>
+        </choose>
+    </outbound>
+    <on-error>
+        <base />
+    </on-error>
+</policies>

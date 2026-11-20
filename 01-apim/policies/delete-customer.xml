@@ -1,0 +1,19 @@
+<policies>
+    <inbound>
+        <base />
+        <!-- If-Match: * ist bei Delete Pflicht. Unbekannte id liefert dann 404. -->
+        <set-header name="If-Match" exists-action="override">
+            <value>*</value>
+        </set-header>
+        <rewrite-uri template="/customers(PartitionKey='customer',RowKey='{id}')" copy-unmatched-params="false" />
+    </inbound>
+    <backend>
+        <base />
+    </backend>
+    <outbound>
+        <base />
+    </outbound>
+    <on-error>
+        <base />
+    </on-error>
+</policies>

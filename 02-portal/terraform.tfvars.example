@@ -1,0 +1,5 @@
+# Nach terraform.tfvars kopieren und ausfüllen.
+# Die Passphrase gehört NICHT hierher, sondern in TF_VAR_state_passphrase (.env).
+# resource_group_name, apim_name und developer_portal_url schreibt 'make up-1' nach stage1.auto.tfvars.
+subscription_id = "00000000-0000-0000-0000-000000000000"
+tenant_id       = "00000000-0000-0000-0000-000000000000"

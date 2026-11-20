@@ -1,0 +1,181 @@
+openapi: 3.0.3
+info:
+  title: Customers API
+  version: 1.0.0
+  description: Einfache CRUD-API für Kunden (PoC, Demo-Daten). APIM spricht direkt mit Azure Table Storage.
+paths:
+  /customers:
+    get:
+      operationId: listCustomers
+      summary: Alle Kunden auflisten
+      responses:
+        "200":
+          description: Liste der Kunden (höchstens 1000)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Customer"
+        "401":
+          description: Subscription Key fehlt oder ist ungültig
+        "429":
+          description: Rate Limit überschritten
+    post:
+      operationId: createCustomer
+      summary: Kunden anlegen
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CustomerInput"
+            example:
+              name: Erika Musterfrau
+              email: erika@example.com
+              city: Köln
+      responses:
+        "201":
+          description: Kunde angelegt
+          headers:
+            Location:
+              description: Pfad des neuen Kunden
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Customer"
+        "400":
+          description: Ungültiger Request-Body
+        "401":
+          description: Subscription Key fehlt oder ist ungültig
+        "429":
+          description: Rate Limit überschritten
+  /customers/{id}:
+    parameters:
+      - $ref: "#/components/parameters/CustomerId"
+    get:
+      operationId: getCustomer
+      summary: Einen Kunden lesen
+      responses:
+        "200":
+          description: Der Kunde
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Customer"
+        "400":
+          description: Ungültige id
+        "401":
+          description: Subscription Key fehlt oder ist ungültig
+        "404":
+          description: Kunde nicht gefunden (Fehler von Table Storage)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StorageError"
+        "429":
+          description: Rate Limit überschritten
+    put:
+      operationId: replaceCustomer
+      summary: Kunden vollständig ersetzen
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CustomerInput"
+            example:
+              name: Erika Musterfrau
+              email: erika@example.com
+              city: Düsseldorf
+      responses:
+        "200":
+          description: Kunde ersetzt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Customer"
+        "400":
+          description: Ungültige id oder ungültiger Request-Body
+        "401":
+          description: Subscription Key fehlt oder ist ungültig
+        "404":
+          description: Kunde nicht gefunden (Fehler von Table Storage)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StorageError"
+        "429":
+          description: Rate Limit überschritten
+    delete:
+      operationId: deleteCustomer
+      summary: Kunden löschen
+      responses:
+        "204":
+          description: Kunde gelöscht
+        "400":
+          description: Ungültige id
+        "401":
+          description: Subscription Key fehlt oder ist ungültig
+        "404":
+          description: Kunde nicht gefunden (Fehler von Table Storage)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StorageError"
+        "429":
+          description: Rate Limit überschritten
+components:
+  parameters:
+    CustomerId:
+      name: id
+      in: path
+      required: true
+      description: ID des Kunden (Seeds c001 bis c005, neue Kunden GUID)
+      schema:
+        type: string
+        pattern: "^[A-Za-z0-9-]{1,64}$"
+      example: c001
+  schemas:
+    CustomerInput:
+      type: object
+      additionalProperties: false
+      required: [name, email]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        email:
+          type: string
+          format: email
+        city:
+          type: string
+          maxLength: 100
+    Customer:
+      type: object
+      required: [id, name, email]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        email:
+          type: string
+          format: email
+        city:
+          type: string
+          maxLength: 100
+      example:
+        id: c001
+        name: Erika Musterfrau
+        email: erika@example.com
+        city: Köln
+    StorageError:
+      type: object
+      description: Fehler im OData-Format von Table Storage, unverändert durchgereicht.
+      additionalProperties: true

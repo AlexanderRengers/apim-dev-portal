@@ -1,0 +1,4 @@
+# Nach terraform.tfvars kopieren und ausfüllen.
+# Die Passphrase gehört NICHT hierher, sondern in TF_VAR_state_passphrase (.env).
+subscription_id = "00000000-0000-0000-0000-000000000000"
+publisher_email = "you@example.com"

@@ -1,0 +1,57 @@
+<policies>
+    <inbound>
+        <base />
+        <validate-content unspecified-content-type-action="prevent" max-size="4096" size-exceeded-action="prevent" errors-variable-name="bodyErrors">
+            <content type="application/json" validate-as="json" action="prevent" allow-additional-properties="false" />
+        </validate-content>
+        <!-- Die ID wird genau einmal erzeugt und für Entity, Antwort und Location wiederverwendet. -->
+        <set-variable name="newId" value="@(Guid.NewGuid().ToString())" />
+        <!-- PartitionKey und RowKey setzt immer APIM, nie der Client. -->
+        <set-body>@{
+            var input = context.Request.Body.As&lt;JObject&gt;(preserveContent: true);
+            var e = new JObject();
+            e["PartitionKey"] = "customer";
+            e["RowKey"] = (string)context.Variables["newId"];
+            e["name"] = input["name"];
+            e["email"] = input["email"];
+            if (input["city"] != null) { e["city"] = input["city"]; }
+            return e.ToString();
+        }</set-body>
+        <set-header name="Content-Type" exists-action="override">
+            <value>application/json</value>
+        </set-header>
+        <!-- Prefer: return-content, sonst liefert Table Storage 204 ohne Body. -->
+        <set-header name="Prefer" exists-action="override">
+            <value>return-content</value>
+        </set-header>
+        <rewrite-uri template="/customers" copy-unmatched-params="false" />
+    </inbound>
+    <backend>
+        <base />
+    </backend>
+    <outbound>
+        <base />
+        <choose>
+            <when condition="@(context.Response.StatusCode == 201)">
+                <set-header name="Content-Type" exists-action="override">
+                    <value>application/json; charset=utf-8</value>
+                </set-header>
+                <set-header name="Location" exists-action="override">
+                    <value>@("/crm/customers/" + (string)context.Variables["newId"])</value>
+                </set-header>
+                <set-body>@{
+                    var row = context.Response.Body.As&lt;JObject&gt;();
+                    var o = new JObject();
+                    o["id"] = row["RowKey"];
+                    o["name"] = row["name"];
+                    o["email"] = row["email"];
+                    if (row["city"] != null) { o["city"] = row["city"]; }
+                    return o.ToString();
+                }</set-body>
+            </when>
+        </choose>
+    </outbound>
+    <on-error>
+        <base />
+    </on-error>
+</policies>
