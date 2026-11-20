@@ -1,38 +1,38 @@
 variable "state_passphrase" {
   type        = string
-  description = "Passphrase für die OpenTofu-State-Verschlüsselung (über TF_VAR_state_passphrase, mindestens 16 Zeichen)."
+  description = "Passphrase for OpenTofu state encryption (via TF_VAR_state_passphrase, at least 16 characters)."
   sensitive   = true
 
   validation {
     condition     = length(var.state_passphrase) >= 16
-    error_message = "state_passphrase muss mindestens 16 Zeichen lang sein."
+    error_message = "state_passphrase must be at least 16 characters long."
   }
 }
 
 variable "subscription_id" {
   type        = string
-  description = "Azure Subscription ID, in der alles angelegt wird."
+  description = "Azure subscription ID to deploy into."
 }
 
 variable "location" {
   type        = string
-  description = "Azure-Region."
+  description = "Azure region."
   default     = "swedencentral"
 }
 
 variable "resource_group_name" {
   type        = string
-  description = "Name der Resource Group für den PoC."
+  description = "Name of the resource group for the PoC."
   default     = "apim-dev-portal-poc"
 }
 
 variable "publisher_name" {
   type        = string
-  description = "Publisher-Name der APIM-Instanz."
+  description = "Publisher name of the APIM instance."
   default     = "APIM Dev Portal PoC"
 }
 
 variable "publisher_email" {
   type        = string
-  description = "Publisher-E-Mail der APIM-Instanz."
+  description = "Publisher email of the APIM instance."
 }

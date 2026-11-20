@@ -1,7 +1,7 @@
 {
   "name": "portal-content-tools",
   "private": true,
-  "description": "Laufzeit-Abhängigkeiten für Microsofts Developer-Portal-Skripte in vendor/scripts.v3 (siehe vendor/UPSTREAM).",
+  "description": "Runtime dependencies for Microsoft's developer portal scripts in vendor/scripts.v3 (see vendor/UPSTREAM).",
   "license": "MIT",
   "dependencies": {
     "@azure/storage-blob": "12.34.0",

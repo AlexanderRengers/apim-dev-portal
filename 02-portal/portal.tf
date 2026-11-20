@@ -10,9 +10,9 @@ resource "azurerm_api_management_identity_provider_aad" "this" {
   depends_on = [time_sleep.secret_propagation]
 }
 
-# Portal-Inhalte als Code: 02-portal/content/ (data.json + media/) entsteht mit 'make portal-capture'.
-# Ändert sich der Snapshot, werden Inhalte und Medien der Instanz ERSETZT (nicht zusammengeführt).
-# Fehlt der Ordner, bleibt der Inhalt der Instanz unangetastet.
+# Portal content as code: 02-portal/content/ (data.json + media/) is created by 'make portal-capture'.
+# When the snapshot changes, the instance's content and media are REPLACED (not merged).
+# If the folder is missing, the instance's content is left untouched.
 locals {
   content_dir   = "${path.module}/content"
   content_files = sort(fileset(local.content_dir, "**"))
@@ -30,8 +30,8 @@ resource "terraform_data" "portal_content" {
   depends_on = [terraform_data.portal_preflight]
 }
 
-# Veröffentlicht das Portal neu, sobald sich eine Eingabe der Anmeldung oder der Portal-Inhalt ändert.
-# Secret-Werte gehen nie in den Hash ein, nur die key_id.
+# Republishes the portal whenever a sign-in input or the portal content changes.
+# Secret values never go into the hash, only the key_id.
 resource "terraform_data" "portal_publish" {
   triggers_replace = sha256(jsonencode({
     client_id = azuread_application.portal.client_id

@@ -4,9 +4,9 @@
         <validate-content unspecified-content-type-action="prevent" max-size="4096" size-exceeded-action="prevent" errors-variable-name="bodyErrors">
             <content type="application/json" validate-as="json" action="prevent" allow-additional-properties="false" />
         </validate-content>
-        <!-- Die ID wird genau einmal erzeugt und für Entity, Antwort und Location wiederverwendet. -->
+        <!-- The ID is generated exactly once and reused for the entity, the response and Location. -->
         <set-variable name="newId" value="@(Guid.NewGuid().ToString())" />
-        <!-- PartitionKey und RowKey setzt immer APIM, nie der Client. -->
+        <!-- PartitionKey and RowKey are always set by APIM, never by the client. -->
         <set-body>@{
             var input = context.Request.Body.As&lt;JObject&gt;(preserveContent: true);
             var e = new JObject();
@@ -20,7 +20,7 @@
         <set-header name="Content-Type" exists-action="override">
             <value>application/json</value>
         </set-header>
-        <!-- Prefer: return-content, sonst liefert Table Storage 204 ohne Body. -->
+        <!-- Prefer: return-content, otherwise Table Storage returns 204 without a body. -->
         <set-header name="Prefer" exists-action="override">
             <value>return-content</value>
         </set-header>

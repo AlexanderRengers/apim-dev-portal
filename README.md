@@ -1,199 +1,221 @@
 # APIM Developer Portal PoC
 
-Proof of Concept für Azure API Management (Developer-Stufe), komplett mit OpenTofu aufgebaut:
+Proof of concept for Azure API Management (Developer tier), built entirely with OpenTofu:
 
-- **Developer Portal mit Anmeldung über Entra ID**, nur Konten aus dem eigenen Tenant, ohne Registrierung per E-Mail und Passwort.
-- **Kunden-API mit vollem CRUD** (`/crm/customers`), die APIM per Policy direkt auf Azure Table Storage abbildet. Es gibt keinen Backend-Code.
-- **Produkt „Self-Service Customer Portal“**: Angemeldete Entwickler abonnieren es und probieren die API im Portal mit „Try it“ aus.
-- **Portal-Aussehen als Code**: Seiten, Styles und Bilder liegen als Snapshot im Repo und lassen sich von dev nach prod deployen.
+- **Developer portal with Entra ID sign-in**, restricted to accounts of your own tenant, no email/password registration.
+- **Customer API with full CRUD** (`/crm/customers`) that APIM maps directly onto Azure Table Storage using policies. There is no backend code.
+- **"Self-Service Customer Portal" product**: signed-in developers subscribe and try the API in the portal ("Try it").
+- **Portal look as code**: pages, styles and images live as a snapshot in the repo and can be deployed from dev to prod.
 
-> **Status:** PoC, nur für Demo-Daten. Siehe [Sicherheitsstand](#sicherheitsstand).
+> **Status:** PoC, demo data only. See [Security posture](#security-posture).
 
-## Architektur
+## Architecture
 
 ```text
-                     Entra ID (eigener Tenant)
-                     App Registration + Service Principal (MSAL-2)
+                     Entra ID (own tenant)
+                     App registration + service principal (MSAL-2)
                                   ▲
-                                  │ Anmeldung
-Browser ──► Developer Portal  https://<apim>.developer.azure-api.net
+                                  │ sign-in
+Browser ──► Developer portal  https://<apim>.developer.azure-api.net
    │
-   └──► Gateway  https://<apim>.azure-api.net/crm/customers   (Subscription Key, CORS)
-              └─ Policies: Managed Identity ──► Table Storage REST API
-                                                └─ Storage Account, Tabelle "customers"
+   └──► Gateway  https://<apim>.azure-api.net/crm/customers   (subscription key, CORS)
+              └─ Policies: managed identity ──► Table Storage REST API
+                                                └─ Storage account, table "customers"
 ```
 
-Alle Azure-Ressourcen liegen in der Resource Group `apim-dev-portal-poc` (swedencentral):
+All Azure resources live in the resource group `apim-dev-portal-poc` (swedencentral):
 
-| Ressource | Name |
+| Resource | Name |
 | --- | --- |
 | API Management (Developer_1) | `apim-devportal-poc-<suffix>` |
-| Storage Account | `stdevportal<suffix>` mit Tabelle `customers` |
-| API | `Customers API`, Pfad `/crm` |
-| Produkt | `Self-Service Customer Portal` (ohne Genehmigung, 60 Aufrufe/min) |
-| Entra App Registration | `apim-dev-portal-poc-portal` (liegt im Tenant, nicht in der RG) |
+| Storage account | `stdevportal<suffix>` with table `customers` |
+| API | `Customers API`, path `/crm` |
+| Product | `Self-Service Customer Portal` (no approval, 60 calls/min) |
+| Entra app registration | `apim-dev-portal-poc-portal` (lives in the tenant, not in the RG) |
 
-### Repo-Struktur
+### Repository layout
 
 ```text
-01-apim/                 Schritt 1: RG, Storage + Seed-Daten, APIM, API, Policies, Produkt
-  api/                   OpenAPI-Vertrag der Kunden-API
-  policies/              Policy-XML (API-Ebene, je Operation, Produkt)
-02-portal/               Schritt 2: Entra App, Identity Provider, Portal-Inhalt, Veröffentlichung
-  content/               Snapshot des Portal-Inhalts (data.json + media/)
-scripts/                 Smoke-Test, Vorabprüfung, Veröffentlichen, Portal-Inhalt exportieren/einspielen
-tools/portal-content/    Microsofts Portal-Skripte (vendor/, fest auf ein Release) + Update-Skript
-Makefile                 Ablaufsteuerung
+01-apim/                 Step 1: RG, storage + seed data, APIM, API, policies, product
+  api/                   OpenAPI contract of the customer API
+  policies/              Policy XML (API scope, per operation, product)
+02-portal/               Step 2: Entra app, identity provider, portal content, publishing
+  content/               Snapshot of the portal content (data.json + media/)
+scripts/                 Smoke test, preflight, publish, portal content capture/apply
+tools/portal-content/    Microsoft's portal scripts (vendor/, pinned to a release) + update script
+Makefile                 Workflow
 ```
 
-## Voraussetzungen
+## Prerequisites
 
-- `az login` mit Zugriff auf die Ziel-Subscription und dem Recht, im Tenant App Registrations anzulegen
+- `az login` with access to the target subscription and permission to create app registrations in the tenant
 - OpenTofu 1.13, GNU Make, `curl`, `jq`, `xmllint`
-- Node.js 20 oder neuer, für die Portal-Skripte
-- **Kosten:** APIM in der Developer-Stufe kostet etwa 0,07 $ pro Stunde (rund 50 $ im Monat), solange es existiert. Storage kostet Cent-Beträge. Nach dem Ausprobieren `make down`.
+- Node.js 20 or newer (for the portal scripts)
+- **Cost:** APIM Developer tier costs about $0.07 per hour (roughly $50 per month) while it exists. Storage costs cents. Run `make down` when you are done.
 
-## Einrichtung
+## Setup
 
-1. `.env.example` nach `.env` kopieren und eine Passphrase für die State-Verschlüsselung eintragen (mindestens 16 Zeichen). Das `Makefile` lädt `.env` automatisch. Für direkte `tofu`-Aufrufe vorher `set -a; . ./.env; set +a` ausführen.
-2. `01-apim/terraform.tfvars.example` nach `01-apim/terraform.tfvars` kopieren und ausfüllen (`subscription_id`, `publisher_email`).
-3. `02-portal/terraform.tfvars.example` nach `02-portal/terraform.tfvars` kopieren und ausfüllen (`subscription_id`, `tenant_id`).
+1. Copy `.env.example` to `.env` and set a passphrase for state encryption (at least 16 characters). The `Makefile` loads `.env` automatically. For direct `tofu` calls run `set -a; . ./.env; set +a` first.
+2. Copy `01-apim/terraform.tfvars.example` to `01-apim/terraform.tfvars` and fill in `subscription_id` and `publisher_email`.
+3. Copy `02-portal/terraform.tfvars.example` to `02-portal/terraform.tfvars` and fill in `subscription_id` and `tenant_id`.
 
-## Ablauf
-
-```bash
-make up-1     # Schritt 1 (30-60 min, weil APIM so lange zum Anlegen braucht)
-make smoke    # prüft die API über das Gateway (20 Prüfungen)
-```
-
-**Manueller Schritt, einmal pro neuer APIM-Instanz:** Azure-Portal → APIM-Instanz → „Developer portal“ → oben „Developer portal“ (öffnet den Admin-Modus). Warten, bis die Seite geladen ist, dann den Tab schließen. Erst dadurch legt APIM die Portal-Inhalte an. `make up-2` prüft das vorab und bricht sonst mit einem Hinweis ab.
+## Deployment
 
 ```bash
-make up-2     # Schritt 2 (Entra App, Identity Provider, Portal-Inhalt, Veröffentlichung)
+make up-1     # step 1 (30-60 min, because creating APIM takes that long)
+make smoke    # checks the API through the gateway (20 checks)
 ```
 
-`apply` und `destroy` fragen nach einer Bestätigung. Mit `AUTO_APPROVE=1` (zum Beispiel `make up-1 AUTO_APPROVE=1`) entfällt die Rückfrage.
+**Manual step, once per new APIM instance:** Azure portal → APIM instance → "Developer portal" → "Developer portal" at the top (opens admin mode). Wait until the page has loaded, then close the tab. Only this makes APIM create the portal content. `make up-2` checks this first and stops with a hint otherwise.
 
-**Im Browser prüfen:**
-1. Portal-URL (`tofu -chdir=02-portal output developer_portal_url`) in einem privaten Fenster öffnen.
-2. „Sign in“ → „Azure Active Directory“ → mit einem Test-User des Tenants anmelden.
-3. Products → „Self-Service Customer Portal“ → Subscribe.
-4. APIs → Customers API → eine Operation → „Try it“.
-5. Gegenprobe: Ein privates Microsoft-Konto wird abgelehnt.
+```bash
+make up-2     # step 2 (Entra app, identity provider, portal content, publishing)
+```
 
-Den Test-User legst du im Entra Admin Center als Member an. Das eigene Konto ist dafür nicht geeignet: Als Subscription-Owner ist man im Portal Admin und sieht nicht, was ein normaler Entwickler sieht.
+`apply` and `destroy` ask for confirmation. `AUTO_APPROVE=1` (e.g. `make up-1 AUTO_APPROVE=1`) skips it.
+
+**Check in the browser:**
+1. Open the portal URL (`tofu -chdir=02-portal output developer_portal_url`) in a private window.
+2. "Sign in" → "Azure Active Directory" → sign in with a test user of the tenant.
+3. Products → "Self-Service Customer Portal" → Subscribe.
+4. APIs → Customers API → pick an operation → "Try it".
+5. Negative test: a personal Microsoft account is rejected.
+
+Create the test user in the Entra admin center as a member. Your own account is not suitable: as subscription owner you are a portal admin and don't see what a regular developer sees.
 
 ## API
 
-| Operation | Aufruf | Erfolg |
+| Operation | Request | Success |
 | --- | --- | --- |
-| Liste | `GET /crm/customers` | 200 |
-| Lesen | `GET /crm/customers/{id}` | 200 |
-| Anlegen | `POST /crm/customers` mit `{"name","email","city?"}` | 201 + `Location` |
-| Ersetzen | `PUT /crm/customers/{id}` | 200 |
-| Löschen | `DELETE /crm/customers/{id}` | 204 |
+| List | `GET /crm/customers` | 200 |
+| Get | `GET /crm/customers/{id}` | 200 |
+| Create | `POST /crm/customers` with `{"name","email","city?"}` | 201 + `Location` |
+| Replace | `PUT /crm/customers/{id}` | 200 |
+| Delete | `DELETE /crm/customers/{id}` | 204 |
 
-Seed-Kunden: `c001` bis `c005`, wobei `c005` absichtlich keine `city` hat.
+Seed customers: `c001` to `c005`; `c005` intentionally has no `city`.
 
 ```bash
 curl -H "Ocp-Apim-Subscription-Key: <key>" "$(tofu -chdir=01-apim output -raw gateway_url)/crm/customers"
 ```
 
-## Portal-Aussehen als Code
+## Portal look as code
 
-Seiten, Layouts, Farben, Schriften, Navigation und Bilder des Portals speichert APIM als „Content Items“ und Medien-Blobs. Der azurerm-Provider kennt dafür keine Ressourcen. Deshalb liegt der Stand als Snapshot im Repo:
+APIM stores the portal's pages, layouts, colors, fonts, navigation and images as "content items" and media blobs. The azurerm provider has no resources for them, so the state lives in the repo as a snapshot:
 
 ```text
-02-portal/content/data.json   alle Content Items (sortiert und eingerückt, für lesbare Diffs)
-02-portal/content/media/      hochgeladene Bilder und Dateien (+ .info mit Content-Type)
+02-portal/content/data.json   all content items (sorted and indented for readable diffs)
+02-portal/content/media/      uploaded images and files (+ .info with the content type)
 ```
 
-**Ablauf:**
-1. Im Admin-Modus gestalten (Azure-Portal → APIM → Developer portal → „Developer portal“). **Nicht** im Admin-Modus veröffentlichen, das übernimmt OpenTofu.
-2. `make portal-capture` exportiert den Stand der Instanz nach `02-portal/content/`.
-3. Mit `git diff` prüfen und committen.
-4. Wenn sich der Snapshot geändert hat, ersetzt `make up-2` Inhalte und Medien der Instanz (`terraform_data.portal_content`) und veröffentlicht das Portal neu.
+**Workflow:**
+1. Design in admin mode (Azure portal → APIM → Developer portal → "Developer portal") and save. **Don't** publish from admin mode; OpenTofu does that.
+2. `make portal-capture` exports the instance's state to `02-portal/content/`.
+3. Review with `git diff` and commit.
+4. `make up-2`: when the snapshot changed, OpenTofu replaces the instance's content and media (`terraform_data.portal_content`) and republishes the portal.
 
-> **Achtung:** Das Einspielen **ersetzt** den Portal-Inhalt der Instanz, es führt nichts zusammen. Wer im Editor etwas ändert und nicht vorher `make portal-capture` ausführt, verliert diese Änderungen beim nächsten Einspielen eines geänderten Snapshots.
+> **Caution:** applying the snapshot **replaces** the instance's portal content, it does not merge. If you edit in the portal and don't run `make portal-capture` first, those edits are lost the next time a changed snapshot is applied.
 
-**Mehrere Stages (dev → prod):** Gestaltet wird nur in dev. Was im Snapshot steht, wird deployt, und `make up-2` gegen prod spielt diesen Stand dort ein. Der Snapshot enthält keine instanzspezifischen Werte wie Hostnamen oder Client-IDs. Entra-App, Identity Provider und Sign-up-Einstellung sind kein Content, OpenTofu legt sie pro Stage an. Benutzer und Subscriptions gehören nicht zum Snapshot. So empfiehlt Microsoft es auch in [Automate developer portal deployments](https://learn.microsoft.com/azure/api-management/automate-portal-deployments). Das Repo selbst hat bisher nur eine Stage.
+### Media
 
-### Microsofts Skripte und Updates
+An image uploaded in the editor ends up in two places in APIM:
 
-Export und Import machen Microsofts offizielle Skripte `capture.js`, `cleanup.js` und `generate.js` aus [`Azure/api-management-developer-portal`](https://github.com/Azure/api-management-developer-portal) (`scripts.v3`, MIT-Lizenz). Sie liegen als **feste Kopie** in `tools/portal-content/vendor/`:
+1. A **blob** in the portal's internal media storage, which APIM manages and you don't see as a storage account.
+2. A **content item** of type `blob` with metadata (`blobId`, `fileName`, `mimeType`, `permalink`). Pages reference the image by this content item's ID.
 
-- `vendor/UPSTREAM` hält Release-Tag und Commit fest, `vendor/LICENSE` ist Microsofts Lizenz.
-- Kopiert sind nur die vier benötigten Dateien, nicht das ganze Repo (Portal-Quellcode, Build, hunderte Pakete).
-- `package.json` und `package-lock.json` legen die npm-Abhängigkeiten auf exakte Versionen fest. `scripts/portal-content.sh` führt bei Bedarf `npm ci` aus.
+The scripts handle both:
 
-Warum keine Kopie zur Laufzeit und kein Submodule: Ein `git clone` bei jedem Lauf hängt vom aktuellen Stand des Microsoft-Repos ab. Ein Update dort kann den Ablauf ohne Vorwarnung ändern, und die Skripte wurden schon einmal umgebaut (v2 → v3). Ein Submodule holt das ganze Repo und braucht `git submodule update` bei jedem Klon. Die feste Kopie ist klein, nachvollziehbar und ändert sich nur durch einen bewussten Commit.
+| Step | What happens to media |
+| --- | --- |
+| `make portal-capture` | Gets a SAS URL for the media container (`portalconfigs/default/listMediaContentSecrets`) and downloads every blob to `media/<blobId>`, plus `<blobId>.info` with the content type. The content item goes into `data.json`. `media/` is wiped first, so images deleted in the portal disappear from the snapshot too. |
+| `make up-2` (apply) | `cleanup.js` deletes **all** content items and **all** blobs in the target. `generate.js` recreates the content items, then uploads every file from `media/` under the same blob key. IDs are identical, so all references stay valid. |
+| Publish | The published portal serves the image under its `permalink` (`https://<portal>/content/<fileName>`). |
 
-**Update (manuell gestartet):**
+Notes:
+- The portal's default images are not in `media/`. They are loaded from Microsoft's public storage (`apimdeveloperportal.z22.web.core.windows.net`).
+- Media files are binary and stored in git as they are. That is fine for a few images. For many or large files (videos, big PDFs), use Git LFS for `02-portal/content/media/**`.
+- Captured snapshots work in any instance, so there is nothing instance-specific about media either.
+
+### Multiple stages (dev → prod)
+
+Design only in dev. Whatever is in the snapshot gets deployed: `make up-2` against prod imports the same snapshot there. The snapshot contains no instance-specific values such as host names or client IDs. The Entra app, identity provider and sign-up setting are not content; OpenTofu creates them per stage. Users and subscriptions are not part of the snapshot either. This matches Microsoft's guidance in [Automate developer portal deployments](https://learn.microsoft.com/azure/api-management/automate-portal-deployments). This repo currently has a single stage.
+
+### Microsoft's scripts and updates
+
+Capture and import use Microsoft's official scripts `capture.js`, `cleanup.js` and `generate.js` from [`Azure/api-management-developer-portal`](https://github.com/Azure/api-management-developer-portal) (`scripts.v3`, MIT license). They are vendored, pinned to a release, in `tools/portal-content/vendor/`:
+
+- `vendor/UPSTREAM` records release tag and commit, `vendor/LICENSE` is Microsoft's license.
+- Only the four required files are copied, not the whole repo (portal source, build, hundreds of packages).
+- `package.json` and `package-lock.json` pin the npm dependencies to exact versions. `scripts/portal-content.sh` runs `npm ci` when needed.
+
+Why not clone at runtime or use a submodule: cloning on every run depends on whatever is on Microsoft's default branch, and an upstream change can alter the workflow without warning. The scripts have been rewritten before (v2 → v3). A submodule pulls the entire repo and needs `git submodule update` on every clone. The vendored copy is small and reviewable, and it only changes through a deliberate commit.
+
+**Updating (started manually):**
 
 ```bash
-make portal-tools-update             # neuestes Release
-make portal-tools-update REF=2.36.0  # bestimmtes Release
-git diff tools/portal-content        # Änderungen an den Skripten prüfen
-make portal-capture                  # gegen dev testen; data.json darf sich nicht unerwartet ändern
+make portal-tools-update             # latest release
+make portal-tools-update REF=2.36.0  # specific release
+git diff tools/portal-content        # review the script changes
+make portal-capture                  # test against dev; data.json must not change unexpectedly
 ```
 
-Das Update-Skript gibt zusätzlich die Paketversionen aus, die Microsoft für `@azure/storage-blob` und `mime` angibt. Weichen sie ab, `package.json` anpassen und `npm install` in `tools/portal-content` ausführen.
+The update script also prints the package versions Microsoft declares for `@azure/storage-blob` and `mime`. If they differ, adjust `package.json` and run `npm install` in `tools/portal-content`.
 
-## Design-Entscheidungen
+## Design decisions
 
-- **Developer-Stufe:** Die günstigste Stufe mit Developer Portal. Consumption hat kein Portal, Basic v2 kostet mehr.
-- **Kein Backend-Code:** Die Policies übersetzen die REST-Aufrufe in Aufrufe der Table Storage REST API. APIM authentifiziert sich mit seiner System Managed Identity (Rolle *Storage Table Data Contributor*). Für eine Demo-API reicht das, es braucht keine Function App und kein Deployment von Code.
-- **Abgesicherte Policies:**
-  - `validate-parameters` lässt in der `id` nur `A-Z a-z 0-9 -` zu, so kommt keine OData-Injection über Hochkommas oder Klammern durch.
-  - `validate-content` lehnt unbekannte Felder und Bodies über 4 KB ab.
-  - `PartitionKey` und `RowKey` setzt immer die Policy, nie der Client.
-  - `copy-unmatched-params="false"` verhindert, dass Clients `$filter` oder `$top` an Storage durchreichen.
-  - `If-Match: *` sorgt dafür, dass PUT und DELETE auf eine unbekannte `id` mit 404 antworten, statt einen Kunden anzulegen.
-  - Den Subscription Key reicht APIM nicht an Storage weiter.
-- **Zwei Roots statt einer:** Das Developer Portal braucht nach dem Anlegen von APIM einmal den manuellen Admin-Klick. Ohne diesen Klick hat das Portal keine Inhalte, und Schritt 2 kann nichts veröffentlichen. Die Roots tauschen nur drei Werte aus, über eine generierte `02-portal/stage1.auto.tfvars`. Es gibt kein `terraform_remote_state`, weil Schritt 2 sonst die Verschlüsselung von Schritt 1 mitkonfigurieren müsste.
-- **Lokaler, verschlüsselter State:** Native State-Verschlüsselung von OpenTofu (pbkdf2 + AES-GCM, erzwungen für State und Plan). Die Passphrase kommt aus `TF_VAR_state_passphrase`.
-- **Veröffentlichen per Skript:** `terraform_data` + `local-exec` ruft die Management-API (`portalRevisions`) auf und wartet, bis die Veröffentlichung fertig ist. Neu veröffentlicht wird nur, wenn sich Client-ID, Secret-ID, Tenant oder der Portal-Snapshot ändern.
-- **Secret-Rotation ohne Drift:** Das Ablaufdatum des Client Secrets kommt aus `time_offset` statt aus `timestamp()`.
+- **Developer tier:** the cheapest tier with a developer portal. Consumption has no portal, Basic v2 costs more.
+- **No backend code:** the policies translate the REST calls into Table Storage REST API calls. APIM authenticates with its system managed identity (role *Storage Table Data Contributor*). For a demo API this is enough; no Function App, no code deployment.
+- **Hardened policies:**
+  - `validate-parameters` only allows `A-Z a-z 0-9 -` in the `id`, so no OData injection via quotes or parentheses.
+  - `validate-content` rejects unknown fields and bodies over 4 KB.
+  - `PartitionKey` and `RowKey` are always set by the policy, never by the client.
+  - `copy-unmatched-params="false"` stops clients from passing `$filter` or `$top` to storage.
+  - `If-Match: *` makes PUT and DELETE on an unknown `id` return 404 instead of creating a customer.
+  - APIM does not forward the subscription key to storage.
+- **Two roots instead of one:** after APIM is created, the developer portal needs the manual admin click once. Without it the portal has no content and step 2 has nothing to publish. The roots exchange only three values, via a generated `02-portal/stage1.auto.tfvars`. There is no `terraform_remote_state`, because step 2 would otherwise have to configure step 1's state encryption as well.
+- **Local, encrypted state:** OpenTofu native state encryption (pbkdf2 + AES-GCM, enforced for state and plan). The passphrase comes from `TF_VAR_state_passphrase`.
+- **Publishing via script:** `terraform_data` + `local-exec` calls the management API (`portalRevisions`) and waits until publishing has completed. It republishes only when the client ID, secret ID, tenant or portal snapshot change.
+- **Secret rotation without drift:** the client secret's expiry comes from `time_offset` instead of `timestamp()`.
 
-## Bekannte Eigenheiten
+## Known quirks
 
-- Der Admin-Klick ist nötig: Vorher liefert die API 0 Portal-Seiten, danach 16.
-- Nach `up-1` können die ersten Aufrufe einige Minuten lang **403** liefern, weil die Rollenzuweisung noch nicht wirkt. `make smoke` wiederholt dann von selbst.
-- Ein `apply` von `01-apim` setzt **nur die fünf Seed-Kunden** zurück. Kunden, die über die API angelegt wurden, bleiben bestehen. Ein Seed-Kunde, der über die API geändert wurde, erscheint in `make plan` als Änderung.
-- Der erste Entra-Anmeldeversuch kann mit `timed_out` (MSAL) scheitern, ein zweiter Versuch klappt.
-- CORS erlaubt alle Request-Header, weil die Test-Konsole je nach Einstellung auch `Ocp-Apim-Trace` oder `Cache-Control` schickt. Mit einer festen Header-Liste schlägt „Try it“ mit einem CORS-Fehler fehl. Die `cors`-Policy auf API-Ebene beantwortet den Preflight ohne eigene OPTIONS-Operation.
-- Sign-up ist aus (`sign_up` in `01-apim/apim.tf`, azurerm 4.x hat dafür keine eigene Ressource).
-- Bei der Smoke-Subscription steht `allow_tracing = false` fest im Code, weil Azure Tracing auf Subscriptions von selbst abschaltet. Sonst würde jeder Plan Drift melden.
-- Die Liste liefert höchstens 1000 Einträge. Fehler (404, 409) kommen unverändert im OData-Format von Table Storage zurück.
-- Die Produkte Starter und Unlimited legt APIM automatisch an. `developers` ist eine APIM-Gruppe, keine Entra-Gruppe.
+- The admin click is required: before it, the API returns 0 portal pages, after it 16.
+- After `up-1`, the first calls may return **403** for a few minutes because the role assignment is not effective yet. `make smoke` retries automatically.
+- Applying `01-apim` resets **only the five seed customers**. Customers created through the API stay. A seed customer changed through the API shows up as a change in `make plan`.
+- The first Entra sign-in attempt may fail with `timed_out` (MSAL); a second attempt works.
+- CORS allows all request headers, because depending on its settings the test console also sends `Ocp-Apim-Trace` or `Cache-Control`. With a fixed header list, "Try it" fails with a CORS error. The `cors` policy at API scope answers the preflight without a dedicated OPTIONS operation.
+- Sign-up is off (`sign_up` in `01-apim/apim.tf`; azurerm 4.x has no separate resource for it).
+- The smoke subscription pins `allow_tracing = false`, because Azure turns tracing off on subscriptions by itself; otherwise every plan reports drift.
+- The list returns at most 1000 items. Errors (404, 409) are passed through unchanged in Table Storage's OData format.
+- APIM creates the Starter and Unlimited products automatically. `developers` is an APIM group, not an Entra group.
 
-## Betrieb
+## Operations
 
-- **Drift prüfen:** `make plan` bricht ab, sobald eine der beiden Roots Änderungen meldet.
-- **Statische Prüfungen:** `make lint` (fmt, validate, XML, Shell-Syntax, Snapshot-JSON). Braucht keinen Azure-Zugriff.
-- **Secret rotieren:** `tofu -chdir=02-portal apply -replace=time_offset.secret_expiry`. Das neue Ablaufdatum erzwingt ein neues Secret, und das Portal wird automatisch neu veröffentlicht. Das aktuelle Ablaufdatum zeigt `tofu -chdir=02-portal output secret_expires_at`.
-- **Portal von Hand neu veröffentlichen:** `tofu -chdir=02-portal apply -replace=terraform_data.portal_publish`.
-- **Fehlersuche:** Azure-Portal → APIM → APIs → Customers API → Operation → Tab „Test“ → „Trace“.
+- **Check for drift:** `make plan` fails as soon as either root reports changes.
+- **Static checks:** `make lint` (fmt, validate, XML, shell syntax, snapshot JSON). Needs no Azure access.
+- **Rotate the secret:** `tofu -chdir=02-portal apply -replace=time_offset.secret_expiry`. The new expiry forces a new secret, and the portal is republished automatically. `tofu -chdir=02-portal output secret_expires_at` shows the current expiry.
+- **Republish the portal manually:** `tofu -chdir=02-portal apply -replace=terraform_data.portal_publish`.
+- **Troubleshooting:** Azure portal → APIM → APIs → Customers API → operation → "Test" tab → "Trace".
 
-## Abbau
+## Teardown
 
 ```bash
-make down     # erst 02-portal (Entra-Objekte), dann 01-apim (RG inkl. APIM, endgültig gelöscht)
+make down     # first 02-portal (Entra objects), then 01-apim (RG incl. APIM, purged)
 ```
 
-**Notfall:**
-- **Passphrase verloren:** Die States lassen sich dann nicht mehr lesen. Resource Group `apim-dev-portal-poc` und App Registration `apim-dev-portal-poc-portal` von Hand löschen.
-- **01 versehentlich vor 02 abgebaut:** Für jede Adresse aus `tofu -chdir=02-portal state list` einmal `tofu -chdir=02-portal state rm <adresse>` ausführen. Danach die App Registration von Hand löschen.
+**Recovery:**
+- **Passphrase lost:** the states can no longer be read. Delete the resource group `apim-dev-portal-poc` and the app registration `apim-dev-portal-poc-portal` manually.
+- **01 torn down before 02 by mistake:** run `tofu -chdir=02-portal state rm <address>` for every address from `tofu -chdir=02-portal state list`, then delete the app registration manually.
 
-## Sicherheitsstand
+## Security posture
 
-- Nur für Demo-Daten geeignet: Wer einen Subscription Key hat, kann alle Kunden lesen, ändern und löschen.
-- Der Storage Account ist öffentlich erreichbar und hat den Shared Key aktiviert, weil das Seeding über azurerm ihn braucht.
-- Das Client Secret steht im verschlüsselten State und in der Konfiguration des APIM-Identity-Providers.
+- Demo data only: anyone with a subscription key can read, change and delete all customers.
+- The storage account is publicly reachable and has shared key access enabled, because seeding via azurerm needs it.
+- The client secret is stored in the encrypted state and in the APIM identity provider configuration.
 
-## Mögliche Erweiterungen
+## Possible extensions
 
-- API zusätzlich mit Entra-Tokens absichern (`validate-jwt` auf API-Ebene, zweite App Registration, OAuth in der Test-Konsole). Produkt, Gruppe und Operationen bleiben dabei unverändert.
-- Mehrere Stages: pro Stage eigene tfvars und eigener State, Code und Portal-Snapshot gemeinsam.
-- Application Insights mit Tageslimit, Budget-Alarm auf der Resource Group.
-- Seitenweise Liste über die Continuation-Header von Table Storage.
+- Additionally protect the API with Entra tokens (`validate-jwt` at API scope, a second app registration, OAuth in the test console). Product, group and operations stay unchanged.
+- Multiple stages: separate tfvars and state per stage, shared code and portal snapshot.
+- Application Insights with a daily cap, budget alert on the resource group.
+- Paged list via Table Storage continuation headers.

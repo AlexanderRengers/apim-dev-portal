@@ -5,7 +5,7 @@ data "azurerm_api_management" "this" {
 
 data "azuread_client_config" "current" {}
 
-# Bricht ab, wenn das Developer Portal noch keinen Inhalt hat (manueller Admin-Klick fehlt).
+# Fails if the developer portal has no content yet (the manual admin click is missing).
 resource "terraform_data" "portal_preflight" {
   triggers_replace = data.azurerm_api_management.this.id
 

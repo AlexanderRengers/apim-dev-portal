@@ -1,7 +1,7 @@
 resource "azurerm_api_management_product" "self_service" {
   product_id            = "self-service-customer-portal"
   display_name          = "Self-Service Customer Portal"
-  description           = "Self-Service-Zugang zur Customers API (PoC, Demo-Daten). Abonnement ohne Genehmigung, 60 Aufrufe pro Minute."
+  description           = "Self-service access to the Customers API (PoC, demo data). Subscription without approval, 60 calls per minute."
   api_management_name   = azurerm_api_management.this.name
   resource_group_name   = azurerm_resource_group.this.name
   published             = true
@@ -17,7 +17,7 @@ resource "azurerm_api_management_product_api" "customers" {
   resource_group_name = azurerm_resource_group.this.name
 }
 
-# "developers" ist eine eingebaute APIM-Gruppe, keine Entra-Gruppe.
+# "developers" is a built-in APIM group, not an Entra group.
 data "azurerm_api_management_group" "developers" {
   name                = "developers"
   api_management_name = azurerm_api_management.this.name
@@ -44,6 +44,6 @@ resource "azurerm_api_management_subscription" "smoke" {
   resource_group_name = azurerm_resource_group.this.name
   product_id          = azurerm_api_management_product.self_service.id
   state               = "active"
-  # Azure schaltet Tracing auf Subscriptions von selbst ab. Ohne diese Zeile meldet jeder Plan Drift.
+  # Azure turns off tracing on subscriptions by itself. Without this line every plan reports drift.
   allow_tracing = false
 }

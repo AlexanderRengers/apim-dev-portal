@@ -8,7 +8,7 @@ resource "azurerm_storage_account" "this" {
   min_tls_version                 = "TLS1_2"
   allow_nested_items_to_be_public = false
   https_traffic_only_enabled      = true
-  # Shared Key bleibt an: azurerm_storage_table_entity braucht ihn für das Seeding.
+  # Shared key stays on: azurerm_storage_table_entity needs it for seeding.
   shared_access_key_enabled = true
   tags                      = local.tags
 }
@@ -24,7 +24,7 @@ locals {
     c002 = { name = "Max Mustermann", email = "max@example.com", city = "Berlin" }
     c003 = { name = "Anna Schmidt", email = "anna@example.com", city = "München" }
     c004 = { name = "Jonas Weber", email = "jonas@example.com", city = "Hamburg" }
-    # c005 hat absichtlich keine city, um die null-sichere Umwandlung zu prüfen.
+    # c005 intentionally has no city, to exercise the null-safe response mapping.
     c005 = { name = "Lea Fischer", email = "lea@example.com", city = null }
   }
 }

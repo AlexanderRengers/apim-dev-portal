@@ -1,8 +1,8 @@
-<!-- API-Ebene: gilt für alle Operationen der Customers API.
-     Platzhalter (templatefile): portal_origin, table_endpoint. -->
+<!-- API scope: applies to all operations of the Customers API.
+     Placeholders (templatefile): portal_origin, table_endpoint. -->
 <policies>
     <inbound>
-        <!-- CORS zuerst, damit auch der OPTIONS-Preflight aus der Portal-Test-Konsole beantwortet wird. -->
+        <!-- CORS first, so the OPTIONS preflight from the portal test console is answered too. -->
         <cors allow-credentials="false">
             <allowed-origins>
                 <origin>${portal_origin}</origin>
@@ -13,8 +13,8 @@
                 <method>PUT</method>
                 <method>DELETE</method>
             </allowed-methods>
-            <!-- Alle Header: Die Test-Konsole schickt je nach Einstellung auch Ocp-Apim-Trace, Cache-Control usw.
-                 Eine feste Liste lässt den Preflight dann ohne CORS-Header durchfallen. Mit allow-credentials=false erlaubt. -->
+            <!-- All headers: depending on its settings the test console also sends Ocp-Apim-Trace, Cache-Control etc.
+                 A fixed list makes the preflight fail without CORS headers. Allowed with allow-credentials=false. -->
             <allowed-headers>
                 <header>*</header>
             </allowed-headers>
@@ -23,12 +23,12 @@
             </expose-headers>
         </cors>
         <base />
-        <!-- id muss zum Muster aus der OpenAPI-Datei passen. Verhindert OData-Injection über Hochkommas oder Klammern. -->
+        <!-- id must match the pattern from the OpenAPI file. Prevents OData injection via quotes or parentheses. -->
         <validate-parameters specified-parameter-action="prevent" unspecified-parameter-action="ignore" errors-variable-name="paramErrors" />
-        <!-- Der Subscription Key gehört nur zu APIM. Storage soll ihn weder als Header noch als Query-Parameter sehen. -->
+        <!-- The subscription key belongs to APIM only. Storage must see it neither as header nor as query parameter. -->
         <set-header name="Ocp-Apim-Subscription-Key" exists-action="delete" />
         <set-query-parameter name="subscription-key" exists-action="delete" />
-        <!-- Token der System Managed Identity für Table Storage (Rolle Storage Table Data Contributor). -->
+        <!-- System managed identity token for Table Storage (role Storage Table Data Contributor). -->
         <authentication-managed-identity resource="https://storage.azure.com/" />
         <set-header name="x-ms-version" exists-action="override">
             <value>2019-02-02</value>

@@ -13,7 +13,7 @@ locals {
     owner   = var.publisher_email
   }
 
-  # operationId aus der OpenAPI-Datei -> Policy-Datei
+  # operationId from the OpenAPI file -> policy file
   operation_policies = {
     listCustomers   = "list-customers.xml"
     getCustomer     = "get-customer.xml"

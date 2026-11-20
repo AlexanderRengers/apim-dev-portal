@@ -1,41 +1,41 @@
 variable "state_passphrase" {
   type        = string
-  description = "Passphrase für die OpenTofu-State-Verschlüsselung (über TF_VAR_state_passphrase, mindestens 16 Zeichen)."
+  description = "Passphrase for OpenTofu state encryption (via TF_VAR_state_passphrase, at least 16 characters)."
   sensitive   = true
 
   validation {
     condition     = length(var.state_passphrase) >= 16
-    error_message = "state_passphrase muss mindestens 16 Zeichen lang sein."
+    error_message = "state_passphrase must be at least 16 characters long."
   }
 }
 
 variable "subscription_id" {
   type        = string
-  description = "Azure Subscription ID (dieselbe wie in 01-apim)."
+  description = "Azure subscription ID (same as in 01-apim)."
 }
 
 variable "tenant_id" {
   type        = string
-  description = "Entra Tenant ID, in dem die App Registration angelegt wird und der als einziger Tenant zur Anmeldung zugelassen ist."
+  description = "Entra tenant ID where the app registration is created; the only tenant allowed to sign in."
 }
 
 variable "resource_group_name" {
   type        = string
-  description = "Resource Group der APIM-Instanz (aus stage1.auto.tfvars)."
+  description = "Resource group of the APIM instance (from stage1.auto.tfvars)."
 }
 
 variable "apim_name" {
   type        = string
-  description = "Name der APIM-Instanz (aus stage1.auto.tfvars)."
+  description = "Name of the APIM instance (from stage1.auto.tfvars)."
 }
 
 variable "developer_portal_url" {
   type        = string
-  description = "URL des Developer Portals (aus stage1.auto.tfvars)."
+  description = "Developer portal URL (from stage1.auto.tfvars)."
 }
 
 variable "secret_lifetime_days" {
   type        = number
-  description = "Laufzeit des Client Secrets in Tagen."
+  description = "Client secret lifetime in days."
   default     = 90
 }

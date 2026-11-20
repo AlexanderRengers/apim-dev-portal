@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Smoke-Test der Customers API über das APIM-Gateway.
-# Eingaben: GATEWAY_URL, SMOKE_KEY (Umgebungsvariablen). Exit 0 = alles grün, 1 = mindestens ein Fehler.
+# Smoke test of the Customers API through the APIM gateway.
+# Inputs: GATEWAY_URL, SMOKE_KEY (environment variables). Exit 0 = all green, 1 = at least one failure.
 set -uo pipefail
 
 if [[ -z "${GATEWAY_URL:-}" || -z "${SMOKE_KEY:-}" ]]; then
-  echo "GATEWAY_URL und SMOKE_KEY müssen gesetzt sein." >&2
+  echo "GATEWAY_URL and SMOKE_KEY must be set." >&2
   exit 2
 fi
 
@@ -16,8 +16,8 @@ TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 FAILS=0
 
-# req METHOD URL [BODY] [mit_key:1|0] [weitere curl-Argumente...]
-# Setzt STATUS, BODY (Datei $TMP/body), Header in $TMP/headers.
+# req METHOD URL [BODY] [with_key:1|0] [more curl args...]
+# Sets STATUS, body in $TMP/body, headers in $TMP/headers.
 req() {
   local method="$1" url="$2" body="${3:-}" withkey="${4:-1}"
   shift 4 2>/dev/null || shift $#
@@ -35,20 +35,20 @@ check() { # name, condition-result (0 = ok), detail
     FAILS=$((FAILS + 1))
   fi
 }
-skip() { echo "SKIP $1 (create fehlgeschlagen)"; FAILS=$((FAILS + 1)); }
+skip() { echo "SKIP $1 (create failed)"; FAILS=$((FAILS + 1)); }
 body() { cat "$TMP/body"; }
 header() { grep -i "^$1:" "$TMP/headers" | head -1 | cut -d' ' -f2- | tr -d '\r'; }
 
-# Warten auf die Rollenzuweisung: nur bei 403 wiederholen, höchstens 10 Minuten.
+# Wait for the role assignment: retry only on 403, at most 10 minutes.
 DEADLINE=$(( $(date +%s) + 600 ))
 while true; do
   req GET "$BASE" "" 1
   [[ "$STATUS" != "403" ]] && break
   if (( $(date +%s) > DEADLINE )); then
-    echo "FAIL rbac-wait (nach 10 Minuten immer noch 403)"
+    echo "FAIL rbac-wait (still 403 after 10 minutes)"
     exit 1
   fi
-  echo "... 403, Rollenzuweisung wirkt noch nicht, warte 30s"
+  echo "... 403, role assignment not effective yet, waiting 30s"
   sleep 30
 done
 
@@ -72,7 +72,7 @@ req GET "$BASE/c005" "" 1
 check get-no-city $? "status=$STATUS body=$(body | head -c 300)"
 
 # 5 create
-req POST "$BASE" '{"name":"Smoke Test","email":"smoke@example.com","city":"Teststadt"}' 1
+req POST "$BASE" '{"name":"Smoke Test","email":"smoke@example.com","city":"Test City"}' 1
 NEW_ID=""
 if [[ "$STATUS" == "201" ]]; then NEW_ID="$(body | jq -r '.id // empty')"; fi
 [[ -n "$NEW_ID" && -n "$(header Location)" ]]
@@ -84,12 +84,12 @@ if [[ -n "$NEW_ID" ]]; then
   [[ "$STATUS" == "200" ]]
   check get-new $? "status=$STATUS"
   # 7 replace
-  req PUT "$BASE/$NEW_ID" '{"name":"Smoke Test","email":"smoke@example.com","city":"Neustadt"}' 1
-  [[ "$STATUS" == "200" ]] && body | jq -e '.city == "Neustadt"' >/dev/null
+  req PUT "$BASE/$NEW_ID" '{"name":"Smoke Test","email":"smoke@example.com","city":"New City"}' 1
+  [[ "$STATUS" == "200" ]] && body | jq -e '.city == "New City"' >/dev/null
   check replace $? "status=$STATUS body=$(body | head -c 300)"
   # 8 get-replaced
   req GET "$BASE/$NEW_ID" "" 1
-  [[ "$STATUS" == "200" ]] && body | jq -e '.city == "Neustadt"' >/dev/null
+  [[ "$STATUS" == "200" ]] && body | jq -e '.city == "New City"' >/dev/null
   check get-replaced $? "status=$STATUS"
   # 9 delete
   req DELETE "$BASE/$NEW_ID" "" 1
@@ -103,7 +103,7 @@ else
   for t in get-new replace get-replaced delete get-deleted; do skip "$t"; done
 fi
 
-# 11 put-unknown (und es wurde nichts angelegt)
+# 11 put-unknown (and nothing was created)
 req PUT "$BASE/does-not-exist" '{"name":"Nobody","email":"nobody@example.com"}' 1
 S1="$STATUS"
 req GET "$BASE/does-not-exist" "" 1
@@ -126,7 +126,7 @@ req POST "$BASE" '{"email":"x@example.com"}' 1
 check create-missing-name $? "status=$STATUS"
 
 # 15 create-bad-email
-req POST "$BASE" '{"name":"X","email":"kein-email"}' 1
+req POST "$BASE" '{"name":"X","email":"not-an-email"}' 1
 [[ "$STATUS" == "400" ]]
 check create-bad-email $? "status=$STATUS"
 
@@ -141,7 +141,7 @@ req GET "$BASE/a%27b" "" 1
 [[ "$STATUS" == "400" ]]
 check get-bad-id $? "status=$STATUS"
 
-# 18 get-long-id (65 Zeichen)
+# 18 get-long-id (65 characters)
 LONG="$(printf 'a%.0s' $(seq 1 65))"
 req GET "$BASE/$LONG" "" 1
 [[ "$STATUS" == "400" ]]
@@ -150,7 +150,7 @@ check get-long-id $? "status=$STATUS"
 # 19 cors-preflight
 req OPTIONS "$BASE" "" 0 -H "Origin: $PORTAL_ORIGIN" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: cache-control,content-type,ocp-apim-subscription-key,ocp-apim-trace"
 [[ "$(header Access-Control-Allow-Origin)" == "$PORTAL_ORIGIN" ]]
-check cors-preflight $? "status=$STATUS allow-origin='$(header Access-Control-Allow-Origin)' erwartet '$PORTAL_ORIGIN'"
+check cors-preflight $? "status=$STATUS allow-origin='$(header Access-Control-Allow-Origin)' expected '$PORTAL_ORIGIN'"
 
 # 20 no-key
 req GET "$BASE" "" 0
@@ -159,8 +159,8 @@ check no-key $? "status=$STATUS"
 
 echo
 if (( FAILS == 0 )); then
-  echo "Alle Prüfungen bestanden."
+  echo "All checks passed."
   exit 0
 fi
-echo "${FAILS} Prüfung(en) fehlgeschlagen."
+echo "${FAILS} check(s) failed."
 exit 1

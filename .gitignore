@@ -4,16 +4,16 @@
 **/*.tfstate.*
 **/*.tfplan
 
-# Persönliche Werte (Subscription, Tenant, E-Mail) und generierte Übergabe zwischen den Roots
+# Personal values (subscription, tenant, email) and the generated hand-off between the roots
 **/terraform.tfvars
 **/*.auto.tfvars
 
-# Passphrase für die State-Verschlüsselung
+# Passphrase for state encryption
 .env
 
-# Node (Abhängigkeiten der Portal-Skripte)
+# Node (dependencies of the portal scripts)
 **/node_modules/
 
-# Zwischendateien
+# Temporary files
 **/*.tmp
 .DS_Store

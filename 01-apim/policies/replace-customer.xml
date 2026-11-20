@@ -4,7 +4,7 @@
         <validate-content unspecified-content-type-action="prevent" max-size="4096" size-exceeded-action="prevent" errors-variable-name="bodyErrors">
             <content type="application/json" validate-as="json" action="prevent" allow-additional-properties="false" />
         </validate-content>
-        <!-- API-Kunde merken: Table Storage antwortet auf Update nur mit 204 ohne Body. -->
+        <!-- Remember the API customer: Table Storage answers an update with 204 and no body. -->
         <set-variable name="replaceBody" value="@{
             var input = context.Request.Body.As&lt;JObject&gt;(preserveContent: true);
             var o = new JObject();
@@ -14,7 +14,7 @@
             if (input[&quot;city&quot;] != null) { o[&quot;city&quot;] = input[&quot;city&quot;]; }
             return o.ToString();
         }" />
-        <!-- Entity aus den erlaubten Feldern bauen. PartitionKey und RowKey setzt APIM. -->
+        <!-- Build the entity from the allowed fields. PartitionKey and RowKey are set by APIM. -->
         <set-body>@{
             var o = JObject.Parse((string)context.Variables["replaceBody"]);
             var e = new JObject();
@@ -28,7 +28,7 @@
         <set-header name="Content-Type" exists-action="override">
             <value>application/json</value>
         </set-header>
-        <!-- If-Match: *, sonst macht Table Storage ein Upsert statt 404 bei unbekannter id. -->
+        <!-- If-Match: *, otherwise Table Storage upserts instead of returning 404 for an unknown id. -->
         <set-header name="If-Match" exists-action="override">
             <value>*</value>
         </set-header>
@@ -40,7 +40,7 @@
     <outbound>
         <base />
         <choose>
-            <!-- 204 von Table Storage wird zu 200 mit dem gespeicherten Kunden. -->
+            <!-- 204 from Table Storage becomes 200 with the remembered customer. -->
             <when condition="@(context.Response.StatusCode == 204)">
                 <set-status code="200" reason="OK" />
                 <set-header name="Content-Type" exists-action="override">

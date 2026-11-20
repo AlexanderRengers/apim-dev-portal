@@ -1,7 +1,7 @@
 <policies>
     <inbound>
         <base />
-        <!-- If-Match: * ist bei Delete Pflicht. Unbekannte id liefert dann 404. -->
+        <!-- If-Match: * is mandatory for delete. An unknown id then returns 404. -->
         <set-header name="If-Match" exists-action="override">
             <value>*</value>
         </set-header>

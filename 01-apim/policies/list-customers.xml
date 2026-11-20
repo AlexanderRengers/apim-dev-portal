@@ -1,7 +1,7 @@
 <policies>
     <inbound>
         <base />
-        <!-- copy-unmatched-params=false: sonst gingen $filter, $top usw. vom Client an Table Storage durch. -->
+        <!-- copy-unmatched-params=false: otherwise $filter, $top etc. from the client would reach Table Storage. -->
         <rewrite-uri template="/customers()?$select=RowKey,name,email,city" copy-unmatched-params="false" />
     </inbound>
     <backend>
@@ -14,7 +14,7 @@
                 <set-header name="Content-Type" exists-action="override">
                     <value>application/json; charset=utf-8</value>
                 </set-header>
-                <!-- {"value":[...]} auspacken, RowKey -> id, city nur wenn vorhanden. -->
+                <!-- Unwrap {"value":[...]}, RowKey -> id, city only if present. -->
                 <set-body>@{
                     var src = context.Response.Body.As&lt;JObject&gt;();
                     var result = new JArray();

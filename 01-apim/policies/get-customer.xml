@@ -1,7 +1,7 @@
 <policies>
     <inbound>
         <base />
-        <!-- copy-unmatched-params=false: keine Client-Query-Parameter an Table Storage. -->
+        <!-- copy-unmatched-params=false: no client query parameters reach Table Storage. -->
         <rewrite-uri template="/customers(PartitionKey='customer',RowKey='{id}')" copy-unmatched-params="false" />
     </inbound>
     <backend>
@@ -14,7 +14,7 @@
                 <set-header name="Content-Type" exists-action="override">
                     <value>application/json; charset=utf-8</value>
                 </set-header>
-                <!-- RowKey -> id. PartitionKey, Timestamp und odata.etag fallen weg. -->
+                <!-- RowKey -> id. PartitionKey, Timestamp and odata.etag are dropped. -->
                 <set-body>@{
                     var row = context.Response.Body.As&lt;JObject&gt;();
                     var o = new JObject();

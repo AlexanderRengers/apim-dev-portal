@@ -11,8 +11,8 @@ resource "azurerm_api_management" "this" {
     type = "SystemAssigned"
   }
 
-  # Sign-up aus = keine Registrierung mit E-Mail und Passwort, nur Anmeldung über Entra ID.
-  # (azurerm 4.x hat dafür keine eigene Ressource, die Einstellung lebt im APIM-Block.)
+  # Sign-up off = no registration with email and password, sign-in only via Entra ID.
+  # (azurerm 4.x has no separate resource for this, the setting lives in the APIM block.)
   sign_up {
     enabled = false
 
@@ -35,7 +35,7 @@ resource "azurerm_role_assignment" "apim_table" {
   principal_id         = azurerm_api_management.this.identity[0].principal_id
 }
 
-# Rollenzuweisungen wirken verzögert. Verkürzt die Phase mit 403, beseitigt sie aber nicht.
+# Role assignments take effect with a delay. This shortens the 403 phase but does not remove it.
 resource "time_sleep" "rbac" {
   create_duration = "120s"
   depends_on      = [azurerm_role_assignment.apim_table]

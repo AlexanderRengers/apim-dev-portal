@@ -3,7 +3,7 @@ resource "azuread_application" "portal" {
   sign_in_audience = "AzureADMyOrg"
   owners           = [data.azuread_client_config.current.object_id]
 
-  # MSAL-2 im Developer Portal braucht eine SPA-Redirect-URI, keine Web-Redirect-URI.
+  # MSAL-2 in the developer portal needs an SPA redirect URI, not a web redirect URI.
   single_page_application {
     redirect_uris = ["${var.developer_portal_url}/signin"]
   }
@@ -12,7 +12,7 @@ resource "azuread_application" "portal" {
     resource_app_id = "00000003-0000-0000-c000-000000000000" # Microsoft Graph
 
     resource_access {
-      id   = "e1fe6dd8-ba31-4d61-89e7-88639da4683d" # User.Read (delegiert)
+      id   = "e1fe6dd8-ba31-4d61-89e7-88639da4683d" # User.Read (delegated)
       type = "Scope"
     }
   }
@@ -20,7 +20,7 @@ resource "azuread_application" "portal" {
   depends_on = [terraform_data.portal_preflight]
 }
 
-# Ohne Service Principal scheitert die Anmeldung der Tenant-Benutzer mit einem AADSTS-Fehler.
+# Without a service principal, sign-in of tenant users fails with an AADSTS error.
 resource "azuread_service_principal" "portal" {
   client_id                    = azuread_application.portal.client_id
   app_role_assignment_required = false
@@ -38,7 +38,7 @@ resource "azuread_application_password" "portal" {
   end_date       = time_offset.secret_expiry.rfc3339
 }
 
-# Kurz warten, bis Entra das neue Secret überall kennt.
+# Wait briefly until the new secret has propagated in Entra.
 resource "time_sleep" "secret_propagation" {
   create_duration = "30s"
   triggers = {

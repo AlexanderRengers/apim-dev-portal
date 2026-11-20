@@ -2,15 +2,15 @@ openapi: 3.0.3
 info:
   title: Customers API
   version: 1.0.0
-  description: Einfache CRUD-API für Kunden (PoC, Demo-Daten). APIM spricht direkt mit Azure Table Storage.
+  description: Simple CRUD API for customers (PoC, demo data). APIM talks directly to Azure Table Storage.
 paths:
   /customers:
     get:
       operationId: listCustomers
-      summary: Alle Kunden auflisten
+      summary: List all customers
       responses:
         "200":
-          description: Liste der Kunden (höchstens 1000)
+          description: List of customers (at most 1000)
           content:
             application/json:
               schema:
@@ -18,12 +18,12 @@ paths:
                 items:
                   $ref: "#/components/schemas/Customer"
         "401":
-          description: Subscription Key fehlt oder ist ungültig
+          description: Subscription key missing or invalid
         "429":
-          description: Rate Limit überschritten
+          description: Rate limit exceeded
     post:
       operationId: createCustomer
-      summary: Kunden anlegen
+      summary: Create a customer
       requestBody:
         required: true
         content:
@@ -36,10 +36,10 @@ paths:
               city: Köln
       responses:
         "201":
-          description: Kunde angelegt
+          description: Customer created
           headers:
             Location:
-              description: Pfad des neuen Kunden
+              description: Path of the new customer
               schema:
                 type: string
           content:
@@ -47,39 +47,39 @@ paths:
               schema:
                 $ref: "#/components/schemas/Customer"
         "400":
-          description: Ungültiger Request-Body
+          description: Invalid request body
         "401":
-          description: Subscription Key fehlt oder ist ungültig
+          description: Subscription key missing or invalid
         "429":
-          description: Rate Limit überschritten
+          description: Rate limit exceeded
   /customers/{id}:
     parameters:
       - $ref: "#/components/parameters/CustomerId"
     get:
       operationId: getCustomer
-      summary: Einen Kunden lesen
+      summary: Get a customer
       responses:
         "200":
-          description: Der Kunde
+          description: The customer
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Customer"
         "400":
-          description: Ungültige id
+          description: Invalid id
         "401":
-          description: Subscription Key fehlt oder ist ungültig
+          description: Subscription key missing or invalid
         "404":
-          description: Kunde nicht gefunden (Fehler von Table Storage)
+          description: Customer not found (error from Table Storage)
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/StorageError"
         "429":
-          description: Rate Limit überschritten
+          description: Rate limit exceeded
     put:
       operationId: replaceCustomer
-      summary: Kunden vollständig ersetzen
+      summary: Replace a customer
       requestBody:
         required: true
         content:
@@ -92,48 +92,48 @@ paths:
               city: Düsseldorf
       responses:
         "200":
-          description: Kunde ersetzt
+          description: Customer replaced
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Customer"
         "400":
-          description: Ungültige id oder ungültiger Request-Body
+          description: Invalid id or invalid request body
         "401":
-          description: Subscription Key fehlt oder ist ungültig
+          description: Subscription key missing or invalid
         "404":
-          description: Kunde nicht gefunden (Fehler von Table Storage)
+          description: Customer not found (error from Table Storage)
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/StorageError"
         "429":
-          description: Rate Limit überschritten
+          description: Rate limit exceeded
     delete:
       operationId: deleteCustomer
-      summary: Kunden löschen
+      summary: Delete a customer
       responses:
         "204":
-          description: Kunde gelöscht
+          description: Customer deleted
         "400":
-          description: Ungültige id
+          description: Invalid id
         "401":
-          description: Subscription Key fehlt oder ist ungültig
+          description: Subscription key missing or invalid
         "404":
-          description: Kunde nicht gefunden (Fehler von Table Storage)
+          description: Customer not found (error from Table Storage)
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/StorageError"
         "429":
-          description: Rate Limit überschritten
+          description: Rate limit exceeded
 components:
   parameters:
     CustomerId:
       name: id
       in: path
       required: true
-      description: ID des Kunden (Seeds c001 bis c005, neue Kunden GUID)
+      description: Customer ID (seeds c001 to c005, new customers get a GUID)
       schema:
         type: string
         pattern: "^[A-Za-z0-9-]{1,64}$"
@@ -177,5 +177,5 @@ components:
         city: Köln
     StorageError:
       type: object
-      description: Fehler im OData-Format von Table Storage, unverändert durchgereicht.
+      description: Error in Table Storage OData format, passed through unchanged.
       additionalProperties: true
